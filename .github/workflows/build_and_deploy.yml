@@ -1,0 +1,41 @@
+name: Deploy to App Service
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js v16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+
+      - name: NPM Install (CI)
+        run: npm ci
+
+      - name: Build
+        run: npm run build --if-present
+
+      - name: Zip Folder
+        run: zip -r release.zip *
+
+      - name: Azure Login
+        uses: Azure/login@v1.4.6
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure WebApp
+        uses: Azure/webapps-deploy@v2
+        with:
+          app-name: app-storm-chaos-customer-api-app2-single
+          # Applies to Web App only: Path to package or folder. *.zip, *.war, *.jar or a folder to deploy
+          package: ./release.zip
+          # Enter the start up command. For ex. dotnet run or dotnet run
+          # startup-command: # optional
